@@ -2,10 +2,20 @@ const binance = require('node-binance-api');
 const listcoinBNB = require('./listcoinbinance');
 const BB = require('technicalindicators').BollingerBands;
 const R = require('ramda');
-
+const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
 
 
+const token = '472833515:AAGXIRPigpyRKgO1NfLCPXBJ3R-5twUKBNw';
+//
+//
+const bot = new TelegramBot(token, {polling: true})
+
+bot.onText(/\/echo (.+)/, (msg, match) => {
+  const chatId = msg.chat.id;
+  const resp = match[1]; // the captured "whatever"
+  bot.sendMessage(chatId, resp);
+});
 //console.log(listcoinBNB);
 binance.prices((error, ticker) => {
   //console.log("prices()", ticker);
@@ -34,11 +44,12 @@ binance.websockets.chart("BNBBTC", "30m", (symbol, interval, chart) => {
   let tick = binance.last(chart);
   const last = chart[tick].close;
   const volume = chart[tick].volume;
-
-  if(volume > 10){
+  if (volume > 10) {
     let bb26 = getBB(6, 2, closePrice);
-    console.log('Checking ......');
-    if(bb26 === last) {
+    if (bb26 === last) {
+      bot.sendMessage('218238495', `Market Name: BNBBTC
+                                    Giá tại BB26: ${bb26}
+                                    Giá Last: ${last}`);
       console.log(bb26 + last);
     }
   }
@@ -69,11 +80,21 @@ function getBB(period, stdDev, values) {
   return parseFloat(rs.lower).toFixed(8);
 }
 
-// function checkCandle(arr){
-//   arr.forEach(function (coin) {
-//     if()
-//   });
-// }
+function checkCandle(arr) {
+  if ((arr[0].C < arr[0].O) && (arr[1].C < arr[1].O)) {
+    return false;
+  }
+  if ((arr[1].C < arr[1].O) && (arr[2].C < arr[2].O)) {
+    return false;
+  }
+  if ((arr[0].C < arr[0].O) && (arr[1].C < arr[1].O) && (arr[2].C < arr[2].O)) {
+    return false;
+  }
+  return true;
+}
+
+
+
 
 
 
