@@ -862,7 +862,7 @@ function startSocket(scoin) {
         //console.log(d);
         closePrice.push(Number(chart[entry].close));
       });
-
+      //last time
       let tick = binance.last(chart);
       const last = chart[tick].close;
       const volume = chart[tick].volume;
@@ -872,7 +872,8 @@ function startSocket(scoin) {
         if (bb26 === last) {
           const listcoin = new ListCoinBittrex({
             marketNn: scoin,
-            enterPrice: last
+            enterPrice: last,
+            lastTime: tick
           });
 
           listcoin.save(function (error) {
