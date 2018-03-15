@@ -209,17 +209,39 @@ exports.getReqWithdrawnList = (req, res) => {
       if (err) {
         reject(err);
       } else {
+        let listP1 = [];
         listCoin.forEach(function (scoin) {
 
           let coinNm = scoin._doc.marketNn;
-          let currentPrice = 0;
-          binance.prices(coinNm, (error, ticker) => {
-            //console.log("Price of BNB: ", ticker.BNBBTC);
-            currentPrice = ticker.BNBBTC;
-          });
-          if(currentPrice)
+          let timeenterPrice = scoin._doc.lastTime;
+          let enterPrice = scoin._doc.enterPrice;
+          let perWL = 0;
+          let winLosePrice = 0;
+          binance.candlesticks("BNBBTC", "15m", (error, ticks, symbol) => {
+            console.log("candlesticks()", ticks);
+            ticks.forEach(item => {
+              if (timeenterPrice <= item[4]) {
+                winLosePrice = item[4];
+              }
+            });
+
+            let last_tick = ticks[ticks.length - 1];
+            let [time, open, high, low, close, volume, closeTime, assetVolume, trades, buyBaseVolume, buyAssetVolume, ignored] = last_tick;
+            if(winLosePrice === 0){
+              winLosePrice = close;
+            }
+            perWL = (winLosePrice - enterPrice)/enterPrice*100;
+          }, {startTime: timeenterPrice, endTime: timeenterPrice + 4500000}); // check 5 candle later
+
+          const objLst = {
+            marketNm: coinNm,
+            enterPrice: enterPrice,
+            timeenterPrice: moment(Number(timeenterPrice)).toString(),
+            perWL: perWL
+          };
+          listP1.push(objLst);
         });
-        resolve(listCoin);
+        resolve(listP1);
       }
     });
   });
