@@ -303,24 +303,26 @@ app.use(errorHandler());
  * Start Express server.
  */
 app.listen(app.get('port'), () => {
-  helper.user.fetchAllActiveUsersAsMap()
-    .then((userMap) => {
-      global.userMap = userMap;
-      console.log(`Initialized UserMap!`);
-    })
-    .catch((err) => {
-      console.log(`Could not fetch active users (${err.message})`);
-    });
+  helper.startCheckListCoin();
   console.log('%s App is running at http://localhost:%d in %s mode', chalk.green('✓'), app.get('port'), app.get('env'));
   console.log('  Press CTRL-C to stop\n');
+  // helper.user.fetchAllActiveUsersAsMap()
+  //   .then((userMap) => {
+  //     global.userMap = userMap;
+  //     console.log(`Initialized UserMap!`);
+  //   })
+  //   .catch((err) => {
+  //     console.log(`Could not fetch active users (${err.message})`);
+  //   });
+
   // helper.startCountDownSchedule(moment(new Date()).add(countEnding, "days").toDate());
-  Config.findOne({name: constants.COUNT_ENDING})
-    .then((config) => {
-      if (config) {
-        const date = moment(config.value, constants.DATE_FORMAT).tz("Asia/Ho_Chi_Minh").toDate();
-        helper.startCountDownSchedule(date);
-      }
-    });
+  // Config.findOne({name: constants.COUNT_ENDING})
+  //   .then((config) => {
+  //     if (config) {
+  //       const date = moment(config.value, constants.DATE_FORMAT).tz("Asia/Ho_Chi_Minh").toDate();
+  //       helper.startCountDownSchedule(date);
+  //     }
+  //   });
 });
 
 module.exports = app;

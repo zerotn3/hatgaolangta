@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "async": "^2.1.2",
+    "await": "^0.2.6",
     "bcrypt-nodejs": "^0.0.3",
     "binance-api-node": "^0.7.1",
     "body-parser": "^1.15.2",
@@ -43,7 +44,7 @@
     "lodash": "^4.16.6",
     "lusca": "^1.4.1",
     "messaging-api-telegram": "^0.6.13",
-    "moment": "^2.17.1",
+    "moment": "^2.21.0",
     "moment-timezone": "^0.5.11",
     "mongoose": "^4.6.6",
     "mongoose-deep-populate": "^3.0.0",

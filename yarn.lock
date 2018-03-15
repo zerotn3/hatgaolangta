@@ -285,6 +285,10 @@ asynckit@^0.4.0:
   version "0.4.0"
   resolved "https://registry.yarnpkg.com/asynckit/-/asynckit-0.4.0.tgz#c79ed97f7f34cb8f2ba1bc9790bcc366474b4b79"
 
+await@^0.2.6:
+  version "0.2.6"
+  resolved "https://registry.yarnpkg.com/await/-/await-0.2.6.tgz#c88e6ee693d6ed372ff0f52ec15d5655908855ce"
+
 aws-sign2@~0.7.0:
   version "0.7.0"
   resolved "https://registry.yarnpkg.com/aws-sign2/-/aws-sign2-0.7.0.tgz#b46e890934a9591f2d2f6f86d7e6a9f1b3fe76a8"
@@ -2598,7 +2602,7 @@ moment@2.19.3:
   version "2.19.3"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.19.3.tgz#bdb99d270d6d7fda78cc0fbace855e27fe7da69f"
 
-"moment@>= 2.9.0", moment@^2.17.1, moment@^2.20.1:
+"moment@>= 2.9.0", moment@^2.20.1, moment@^2.21.0:
   version "2.21.0"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.21.0.tgz#2a114b51d2a6ec9e6d83cf803f838a878d8a023a"
 

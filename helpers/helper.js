@@ -11,8 +11,24 @@ const constants = require('../config/constants.json');
 const UPGRADE_LEVEL = constants.UPGRADE_LEVEL;
 const Role = constants.ROLE;
 const MenuList = constants.MENUS;
-const _ = require('lodash');
 const nodeMailer = require('nodemailer');
+
+const binance = require('node-binance-api');
+const listcoinBNB = require('../listcoinbinance');
+const BB = require('technicalindicators').BollingerBands;
+const RSI = require('technicalindicators').RSI;
+const R = require('ramda');
+const _ = require('lodash');
+const TelegramBot = require('node-telegram-bot-api');
+const fs = require('fs');
+const ListCoinBittrex = require('../models/ListCoinBittrex');
+
+const token = '472833515:AAGXIRPigpyRKgO1NfLCPXBJ3R-5twUKBNw';
+//
+//
+const bot = new TelegramBot(token, {polling: true})
+
+
 const mailer = nodeMailer.createTransport({
   service: 'SendGrid',
   auth: {
@@ -27,7 +43,7 @@ const crypto = require('crypto');
 const moment = require('moment');
 
 const walkUsers = (user, list) => {
-  return User.find({ _id: user._id })
+  return User.find({_id: user._id})
     .deepPopulate('users')
     .then((userData) => {
       let usrLst = userData[0].users;
@@ -68,7 +84,7 @@ const walkUsersByVirtualSponsor = (user, list) => {
     }
     list.push(user.toTreeItem(parent));
   }
-  return User.find({ virSponsor: user._id })
+  return User.find({virSponsor: user._id})
     .then((usrLst) => {
       let promises = [];
       usrLst.forEach((usr) => {
@@ -91,7 +107,7 @@ const fetchAllUsers1 = (user) => {
 };
 
 const findVirtualSponsor = (user) => {
-  return User.find({ _id: user._id })
+  return User.find({_id: user._id})
     .deepPopulate('users')
     .then((userData) => {
       let usrLst = userData[0].users;
@@ -121,7 +137,7 @@ const findVirtualSponsor = (user) => {
 
 const findVirtualSponsor1 = (user, queue) => {
   queue = queue || [];
-  return User.find({ _id: user._id })
+  return User.find({_id: user._id})
     .deepPopulate('users')
     .then((userData) => {
       let usrLst = userData[0].users;
@@ -177,7 +193,7 @@ const sendBTCToUpLine = (sponsor, amount, uplineAmount) => {
   if (amount <= 0 || !sponsor) {
     return;
   }
-  User.findOne({ _id: sponsor.virSponsor || sponsor.sponsor }, (err, sponsor) => {
+  User.findOne({_id: sponsor.virSponsor || sponsor.sponsor}, (err, sponsor) => {
     if (!err && sponsor) {
       sponsor.wallet.overflow = parseFloat((sponsor.wallet.overflow + uplineAmount).toFixed(8));
       sponsor.save((err) => {
@@ -192,7 +208,7 @@ const sendBTCToUpLine = (sponsor, amount, uplineAmount) => {
 const howMuchForNextLevel = (user, callback) => {
   let upLvls = _.values(constants.UPGRADE_LEVEL);
   let usrLvl = user.profile.level;
-  Config.findOne({ name: upLvls[usrLvl] }, (error, config) => {
+  Config.findOne({name: upLvls[usrLvl]}, (error, config) => {
     callback(error, {
       level: upLvls.indexOf(config.name) + 1,
       amount: config ? parseFloat(config.value) : 0,
@@ -205,7 +221,7 @@ const sendSponsorBTC = (user, sponsor, amount) => {
     return;
   let sponsorLevel = sponsor.profile.level;
   let upLvls = _.values(constants.UPGRADE_LEVEL);
-  Config.findOne({ value: amount }, (error, config) => {
+  Config.findOne({value: amount}, (error, config) => {
     let level = upLvls.indexOf(config.name) + 1;
 
     if (level == sponsorLevel) {
@@ -234,7 +250,7 @@ const sendSponsorBTC = (user, sponsor, amount) => {
 const sendSponsorUpgradeBTC = (user, amount) => {
   let lastReceiver = user.wallet.lastReceiver;
   if (lastReceiver) {
-    User.findOne({ _id: lastReceiver })
+    User.findOne({_id: lastReceiver})
       .populate('virSponsor')
       .exec((err, uS) => {
         if (!err) {
@@ -244,7 +260,7 @@ const sendSponsorUpgradeBTC = (user, amount) => {
         }
       });
   } else {
-    User.findOne({ _id: user.sponsor })
+    User.findOne({_id: user.sponsor})
       .deepPopulate('virSponsor')
       .then((sponsor) => {
         sendSponsorBTC(user, sponsor, amount);
@@ -325,7 +341,7 @@ const notifyTransaction = (user, transaction) => {
     from: process.env.EMAIL_ALERT,
     to: user.email,
     subject: `Account balance was changed (${user.username})`,
-    html:  `<p><img src="https://bitrain.info/assets/images/logo-blue.png" alt="Bitrain.info" width="228" height="84" /></p><br />
+    html: `<p><img src="https://bitrain.info/assets/images/logo-blue.png" alt="Bitrain.info" width="228" height="84" /></p><br />
             <p>Your account was changed &nbsp;${transaction.amount} BTC at ${transaction.createdAt}.<br />
             <strong>Current Balance:</strong> ${user.wallet[transaction.wallet]}<br />
             <strong>Description:</strong> ${transaction.wallet}<br />
@@ -365,7 +381,7 @@ const sendVerifyEmail = (user, verifyLink) => {
  */
 const calcDataForNav = (user) => {
   const findCountEnding = new Promise((resolve, reject) => {
-    Config.findOne({ name: constants.COUNT_ENDING })
+    Config.findOne({name: constants.COUNT_ENDING})
       .then((data) => {
         resolve(data.value);
       })
@@ -383,7 +399,7 @@ const calcDataForNav = (user) => {
   });
 
   const countF1 = new Promise((resolve) => {
-    return User.findOne({ _id: user.id })
+    return User.findOne({_id: user.id})
       .populate('users')
       .then((userData) => {
         const usrLst = _.filter(userData.users, (u) => {
@@ -407,13 +423,13 @@ const calcDataForNav = (user) => {
 
 const activeUser = (user, hashCode) => {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: user.sponsor }, (err, s) => {
+    User.findOne({_id: user.sponsor}, (err, s) => {
       if (err) {
         reject(err);
         return;
       }
 
-      Promise.all([Config.findOne({ name: UPGRADE_LEVEL.LVL_1 }), findVirtualSponsor1(s, [])])
+      Promise.all([Config.findOne({name: UPGRADE_LEVEL.LVL_1}), findVirtualSponsor1(s, [])])
         .then((data) => {
           let config = data[0];
           let vSponsor = data[1];
@@ -432,7 +448,7 @@ const activeUser = (user, hashCode) => {
             lastReceiver = vSponsor.id;
           }
 
-          User.update({ _id: user.id }, {
+          User.update({_id: user.id}, {
             $set: {
               active: true,
               'profile.level': 1,
@@ -446,7 +462,7 @@ const activeUser = (user, hashCode) => {
               console.log(`Could not active user ${user.full_nm}, ${err.message}`);
               reject(err);
             } else {
-              User.findOne({ _id: user.id }, (err, _resUsr) => {
+              User.findOne({_id: user.id}, (err, _resUsr) => {
                 if (!err) {
                   global.userMap[_resUsr._id.toString()] = _resUsr;
                 }
@@ -455,7 +471,7 @@ const activeUser = (user, hashCode) => {
           });
 
           let p1 = new Promise((resolve, reject) => {
-            User.findOne({ _id: sponsor }, (err, sponsor) => {
+            User.findOne({_id: sponsor}, (err, sponsor) => {
               if (!err) {
                 let x = sponsor.wallet.direct + oneOfThree;
                 sponsor.wallet.direct = parseFloat(x.toFixed(8));
@@ -514,7 +530,7 @@ const upgradeLevel = (user, callback) => {
 
     if (user.wallet.upgrade >= valueForNextLvl) {
       remainUpgrade = parseFloat((user.wallet.upgrade - valueForNextLvl).toFixed(8));
-      User.update({ _id: user.id }, {
+      User.update({_id: user.id}, {
         $set: {
           'profile.level': user.profile.level + 1,
           'wallet.withdrawn': parseFloat((user.wallet.withdrawn + remainUpgrade).toFixed(8)),
@@ -532,14 +548,14 @@ const upgradeLevel = (user, callback) => {
         sendSponsorUpgradeBTC(user, valueForNextLvl);
       }
     } else {
-      callback({ error: { message: `Upgrade wallet balance (${user.wallet.upgrade}) is not enough for upgrading level (${valueForNextLvl})` } });
+      callback({error: {message: `Upgrade wallet balance (${user.wallet.upgrade}) is not enough for upgrading level (${valueForNextLvl})`}});
     }
   });
 };
 
 const verifyHashCode = (user, hashCode) => {
   return new Promise((resolve, reject) => {
-    User.findOne({ hash_cd: hashCode }, (err, existingUser) => {
+    User.findOne({hash_cd: hashCode}, (err, existingUser) => {
       if (err) {
         reject({
           code: 'VHC001',
@@ -573,7 +589,7 @@ const checkBlockchainTransaction = (user, hashCode) => {
     json: true
   });
 
-  let p2 = Config.findOne({ name: UPGRADE_LEVEL.LVL_1 });
+  let p2 = Config.findOne({name: UPGRADE_LEVEL.LVL_1});
 
   return new Promise((resolve, reject) => {
     Promise.all([p1, p2])
@@ -735,7 +751,7 @@ const createTransferBtc = (user, transBtc) => {
 };
 
 const notifySentBtcCompleted = (reqBtc) => {
-  User.findOne({ _id: reqBtc.user }, (err, user) => {
+  User.findOne({_id: reqBtc.user}, (err, user) => {
     if (!err) {
       sendEmail({
         from: process.env.EMAIL_ALERT,
@@ -779,7 +795,7 @@ const notifyBannedAccount = (emails) => {
 const fetchAllActiveUsersAsMap = () => {
   return new Promise((resolve, reject) => {
     let hashMap = {};
-    User.find({ active: true })
+    User.find({active: true})
       .then((users) => {
         _.forEach(users, (user) => {
           hashMap[user._id.toString()] = user;
@@ -792,6 +808,129 @@ const fetchAllActiveUsersAsMap = () => {
       });
   });
 };
+
+
+const startCheckListCoin = () => {
+  for (let XXX in listcoinBNB.listCBNB) {
+    let scoin = listcoinBNB.listCBNB[XXX];
+    startSocket(scoin);
+  }
+};
+
+function closeSocket(scoin) {
+  binance.websockets.terminate(`${scoin}@kline_15m`);
+}
+
+function startSocket(scoin) {
+  binance.websockets.chart(scoin, "15m", (symbol, interval, chart) => {
+    let keys = Object.keys(chart);
+
+    /**
+     * check nen xanh do
+     */
+    let love3st = R.takeLast(4, keys);
+    let redblueArr = [];
+    love3st.forEach(function (entry) {
+      let dt = moment(Number(entry)).toString();
+      //console.log(dt);
+      redblueArr.push(chart[entry]);
+    });
+    let candlests = checkCandle(redblueArr);
+
+    /**
+     * Check RSI
+     */
+    let love50st = R.takeLast(50, keys);
+    let RsiArr = [];
+    love50st.forEach(function (entry) {
+      RsiArr.push(chart[entry]);
+    });
+    let listRSI = _.map(RsiArr, 'close');
+    let rsiVl = checkRSI(listRSI);
+    //console.log(rsiVl);
+
+    /**
+     * Lay data neu thoa man candle & RSI
+     */
+    if (candlests && (rsiVl < 70)) {
+
+      let lastCandle = R.takeLast(50, keys);
+
+      let closePrice = [];
+      lastCandle.forEach(function (entry) {
+        const d = moment(Number(entry)).toString();
+        //console.log(d);
+        closePrice.push(Number(chart[entry].close));
+      });
+
+      let tick = binance.last(chart);
+      const last = chart[tick].close;
+      const volume = chart[tick].volume;
+      if (volume > 10) {
+        let bb26 = getBB(6, 2, closePrice);
+
+        if (bb26 === last) {
+          const listcoin = new ListCoinBittrex({
+            marketNn: scoin,
+            enterPrice: last
+          });
+
+          listcoin.save(function (error) {
+            if (error) {
+              console.error(error);
+            }
+          });
+          bot.sendMessage('218238495', `Market Name: ${scoin}
+                                  Giá tại BB26 = Last: ${bb26}`);
+          // bot.sendMessage('-277262874', `Market Name: ${scoin}
+          //                         Giá vào lệnh: ${bb26}`);
+          console.log(bb26 + last);
+        }
+      }
+    } else {
+      //console.log(`${scoin} có 3 nên liên tiếp không đủ điều kiện !`);
+      //bot.sendMessage('218238495', `${scoin} 3 nến liên tiếp không đủ điều kiện.`);
+      closeSocket(scoin);
+    }
+  });
+}
+
+
+function getBB(period, stdDev, values) {
+  let rs;
+  let input = {
+    period: period,
+    values: values,
+    stdDev: stdDev
+
+  }
+  rs = R.last(BB.calculate(input));
+  return parseFloat(rs.lower).toFixed(8);
+}
+
+
+function checkRSI(value) {
+  const inputRSI = {
+    values: value,
+    period: 14
+  };
+
+  return _.last(RSI.calculate(inputRSI));
+}
+
+function checkCandle(arr) {
+  if ((arr[0].close < arr[0].open) && (arr[1].close < arr[1].open)) {
+    return false;
+  }
+  if ((arr[1].close < arr[1].open) && (arr[2].close < arr[2].open)) {
+    return false;
+  }
+  if ((arr[0].close < arr[0].open) && (arr[1].close < arr[1].open) && (arr[2].close < arr[2].open)) {
+    return false;
+  }
+  return true;
+}
+
 
 const helpers = {
   user: {
@@ -824,6 +963,7 @@ const helpers = {
     notifyBannedAccount: notifyBannedAccount,
   },
   startCountDownSchedule: startCountDownSchedule,
+  startCheckListCoin: startCheckListCoin,
   transferBTCFromOverflowToWithdrawn: transferBTCFromOverflowToWithdrawn,
 };
 

@@ -24,14 +24,14 @@ const getStandardDeviation = require('get-standard-deviation');
 const BB = require('technicalindicators').BollingerBands;
 
 
-let countrun = 0;
-let minutes = 1, the_interval = minutes * 60 * 100;
-setInterval(function () {
-  getBB26();
-  getListCoin();
-  countrun = countrun + 1;
-  console.log("==========Chạy được   " + countrun + "   lần=============")
-}, the_interval);
+// let countrun = 0;
+// let minutes = 1, the_interval = minutes * 60 * 100;
+// setInterval(function () {
+//   getBB26();
+//   getListCoin();
+//   countrun = countrun + 1;
+//   console.log("==========Chạy được   " + countrun + "   lần=============")
+// }, the_interval);
 
 
 function getBB(period, stdDev, values) {
@@ -203,47 +203,26 @@ function _checkCandle(marketNm) {
  * @param res
  */
 exports.getReqWithdrawnList = (req, res) => {
-  // let p0 = new Promise((resolve, reject) => {
-  //   let sts = getListCoin();
-  //   if (sts != 'OK') {
-  //     reject(err);
-  //   } else {
-  //     resolve(sts);
-  //   }
-  // })
 
   let p1 = new Promise((resolve, reject) => {
     ListCoinBittrex.find({}, (err, listCoin) => {
       if (err) {
         reject(err);
       } else {
+        listCoin.forEach(function (scoin) {
+
+          let coinNm = scoin._doc.marketNn;
+          let currentPrice = 0;
+          binance.prices(coinNm, (error, ticker) => {
+            //console.log("Price of BNB: ", ticker.BNBBTC);
+            currentPrice = ticker.BNBBTC;
+          });
+          if(currentPrice)
+        });
         resolve(listCoin);
       }
     });
   });
-
-  // let p2 = new Promise((resolve, reject) => {
-  //   RequestBtc.find({status_req: 'N'})
-  //     .populate('user')
-  //     .then((reqBTCs) => {
-  //       resolve(reqBTCs);
-  //     })
-  //     .catch((err) => {
-  //       reject(err);
-  //     });
-  // });
-  //
-  //
-  // let p3 = new Promise((resolve, reject) => {
-  //   RequestBtc.find({status_req: 'Y'})
-  //     .populate('user')
-  //     .then((reqBTCs) => {
-  //       resolve(reqBTCs);
-  //     })
-  //     .catch((err) => {
-  //       reject(err);
-  //     });
-  // });
 
   Promise.all([p1])
     .then((data) => {

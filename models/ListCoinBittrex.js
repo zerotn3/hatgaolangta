@@ -10,6 +10,8 @@ const relationship = require("mongoose-relationship");
 
 const listCoinBittrexSchema = new mongoose.Schema({
   marketNn : String,
+  enterPrice : Number,
+  bbvalue: Number,
   bvolume : Number,
   spread: Number,
   candle: String,
