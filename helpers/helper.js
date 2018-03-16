@@ -5,6 +5,7 @@
 const User = require('../models/User');
 const Config = require('../models/Config');
 const WalletTransaction = require('../models/WalletTransaction');
+const ListCoinBittrex = require('../models/ListCoinBittrex');
 const RequestBtc = require('../models/RequestBtc');
 const TransferBtc = require('../models/TransferBtc');
 const constants = require('../config/constants.json');
@@ -21,7 +22,6 @@ const R = require('ramda');
 const _ = require('lodash');
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
-const ListCoinBittrex = require('../models/ListCoinBittrex');
 
 const token = '472833515:AAGXIRPigpyRKgO1NfLCPXBJ3R-5twUKBNw';
 //
@@ -817,11 +817,12 @@ const startCheckListCoin = () => {
   }
 };
 
-function closeSocket(scoin) {
+async function closeSocket(scoin) {
   binance.websockets.terminate(`${scoin}@kline_15m`);
 }
 
-function startSocket(scoin) {
+async function startSocket(scoin) {
+  setTimeout(function() {
   binance.websockets.chart(scoin, "15m", (symbol, interval, chart) => {
     let keys = Object.keys(chart);
 
@@ -894,10 +895,11 @@ function startSocket(scoin) {
       closeSocket(scoin);
     }
   });
+  }, 500);
 }
 
 
-function getBB(period, stdDev, values) {
+async function getBB(period, stdDev, values) {
   let rs;
   let input = {
     period: period,
@@ -910,7 +912,7 @@ function getBB(period, stdDev, values) {
 }
 
 
-function checkRSI(value) {
+async function checkRSI(value) {
   const inputRSI = {
     values: value,
     period: 14
@@ -919,7 +921,7 @@ function checkRSI(value) {
   return _.last(RSI.calculate(inputRSI));
 }
 
-function checkCandle(arr) {
+async function checkCandle(arr) {
   if ((arr[0].close < arr[0].open) && (arr[1].close < arr[1].open)) {
     return false;
   }
@@ -930,6 +932,65 @@ function checkCandle(arr) {
     return false;
   }
   return true;
+}
+
+async function updatePriceFinished() {
+  ListCoinBittrex.find({}, (err, listCoin) => {
+    if (err) {
+      reject(err);
+    } else {
+      let listP1 = [];
+      let promises = [];
+      if (listCoin) {
+        listCoin.forEach(function (scoin) {
+
+          let coinNm = scoin._doc.marketNn;
+          let timeenterPrice = scoin._doc.lastTime;
+          let enterPrice = scoin._doc.enterPrice;
+          getPerWL(coinNm, timeenterPrice, enterPrice).then((val) => {
+            ListCoinBittrex.update({lastTime: timeenterPrice}, {
+              $set: {
+                matchPrice: val
+              }
+            }, (err) => {
+              if (err) {
+                console.log(`Upload Fail`);
+                reject(err);
+              } else {
+                console.log(`${scoin} Upload Done`);
+              }
+            });
+          });
+        });
+      }
+    }
+  });
+}
+
+async function getPerWL(coinNm, timeenterPrice, enterPrice) {
+  let winLosePrice = 0;
+  return new Promise((resolve, reject) => {
+    binance.candlesticks(coinNm, "15m", (error, ticks, symbol) => {
+      if (error) {
+        reject(error);
+      }
+      //console.log("candlesticks()", ticks);
+      ticks.forEach(item => {
+        if (enterPrice <= Number(item[4])) {
+          winLosePrice = Number(item[4]);
+          return;
+        }
+      });
+
+      let last_tick = ticks[ticks.length - 1];
+      let [time, open, high, low, close, volume, closeTime, assetVolume, trades, buyBaseVolume, buyAssetVolume, ignored] = last_tick;
+      if (winLosePrice === 0) {
+        winLosePrice = close;
+      }
+      let wlPr = ((Number(winLosePrice) - enterPrice) / enterPrice * 100).toFixed(2);
+      resolve(wlPr);
+    }, {startTime: timeenterPrice, endTime: timeenterPrice + 4500000});
+  })
 }
 
 
@@ -965,6 +1026,7 @@ const helpers = {
   },
   startCountDownSchedule: startCountDownSchedule,
   startCheckListCoin: startCheckListCoin,
+  updatePriceFinished: updatePriceFinished,
   transferBTCFromOverflowToWithdrawn: transferBTCFromOverflowToWithdrawn,
 };
 
