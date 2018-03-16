@@ -24,6 +24,9 @@ const getStandardDeviation = require('get-standard-deviation');
 const BB = require('technicalindicators').BollingerBands;
 
 
+const binance = require('node-binance-api');
+
+
 // let countrun = 0;
 // let minutes = 1, the_interval = minutes * 60 * 100;
 // setInterval(function () {
@@ -204,44 +207,49 @@ function _checkCandle(marketNm) {
  */
 exports.getReqWithdrawnList = (req, res) => {
 
+  // let p1 = new Promise((resolve, reject) => {
+  //   ListCoinBittrex.find({}, (err, listCoin) => {
+  //     if (err) {
+  //       reject(err);
+  //     } else {
+  //       let listP1 = [];
+  //       let promises = [];
+  //       if (listCoin) {
+  //         listCoin.forEach(function (scoin) {
+  //
+  //           let coinNm = scoin._doc.marketNn;
+  //           let timeenterPrice = scoin._doc.lastTime;
+  //           let enterPrice = scoin._doc.enterPrice;
+  //           let perWL = 0;
+  //           let aloha = getPerWL(coinNm, timeenterPrice, enterPrice).then(function (val) {
+  //             return val;
+  //           });
+  //
+  //           promises.push(aloha);
+  //           const objLst = {
+  //             marketNm: coinNm,
+  //             enterPrice: enterPrice,
+  //             timeenterPrice: moment(Number(timeenterPrice)).toString(),
+  //             perWL: perWL
+  //           };
+  //           listP1.push(objLst);
+  //         });
+  //
+  //         return Promise.all(promises).then(function () {
+  //           return list;
+  //         });
+  //       }
+  //       resolve(listP1);
+  //     }
+  //   });
+  // });
+
   let p1 = new Promise((resolve, reject) => {
     ListCoinBittrex.find({}, (err, listCoin) => {
       if (err) {
         reject(err);
       } else {
-        let listP1 = [];
-        listCoin.forEach(function (scoin) {
-
-          let coinNm = scoin._doc.marketNn;
-          let timeenterPrice = scoin._doc.lastTime;
-          let enterPrice = scoin._doc.enterPrice;
-          let perWL = 0;
-          let winLosePrice = 0;
-          binance.candlesticks("BNBBTC", "15m", (error, ticks, symbol) => {
-            console.log("candlesticks()", ticks);
-            ticks.forEach(item => {
-              if (timeenterPrice <= item[4]) {
-                winLosePrice = item[4];
-              }
-            });
-
-            let last_tick = ticks[ticks.length - 1];
-            let [time, open, high, low, close, volume, closeTime, assetVolume, trades, buyBaseVolume, buyAssetVolume, ignored] = last_tick;
-            if(winLosePrice === 0){
-              winLosePrice = close;
-            }
-            perWL = (winLosePrice - enterPrice)/enterPrice*100;
-          }, {startTime: timeenterPrice, endTime: timeenterPrice + 4500000}); // check 5 candle later
-
-          const objLst = {
-            marketNm: coinNm,
-            enterPrice: enterPrice,
-            timeenterPrice: moment(Number(timeenterPrice)).toString(),
-            perWL: perWL
-          };
-          listP1.push(objLst);
-        });
-        resolve(listP1);
+        resolve(listCoin);
       }
     });
   });
@@ -258,11 +266,31 @@ exports.getReqWithdrawnList = (req, res) => {
     });
 };
 
-const getCoinToBTC = coin =>
-  new Promise((resolve, reject) =>
-    bittrex.sendCustomRequest(`https://bittrex.com/api/v1.1/public/getticker?market=BTC-${coin}`, ({result: {Last: value}}, err) => (
-      err === null
-        ? resolve(value)
-        : reject(err)
-    )));
+function getPerWL(coinNm, timeenterPrice, enterPrice) {
+  let winLosePrice = 0;
+  return new Promise((resolve, reject) => {
+    binance.candlesticks(coinNm, "15m", (error, ticks, symbol) => {
+      if (error) {
+        reject(error);
+      }
+      //console.log("candlesticks()", ticks);
+      ticks.forEach(item => {
+        if (enterPrice <= Number(item[4])) {
+          winLosePrice = Number(item[4]);
+          return;
+        }
+      });
+
+      let last_tick = ticks[ticks.length - 1];
+      let [time, open, high, low, close, volume, closeTime, assetVolume, trades, buyBaseVolume, buyAssetVolume, ignored] = last_tick;
+      if (winLosePrice === 0) {
+        winLosePrice = close;
+      }
+      let wlPr = ((Number(winLosePrice) - enterPrice) / enterPrice * 100).toFixed(2);
+      resolve(wlPr);
+    }, {startTime: timeenterPrice, endTime: timeenterPrice + 4500000});
+  })
+}
+
+
 

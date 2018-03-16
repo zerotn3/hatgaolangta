@@ -17,20 +17,18 @@ block content
           tr
             th #No
             th Market Name
-            th Volumne
-            th % Spread
-            th Candle
-            th Trend
+            th Enter Price
+            th %
+            th Time Enter
 
 
         tfoot
           tr
             th #No
             th Market Name
-            th Volumne
-            th % Spread
-            th Candle
-            th Trend
+            th Enter Price
+            th %
+            th Time Enter
 
 
         tbody
@@ -41,10 +39,11 @@ block content
                 td= i
                 td
                   a(href='https://bittrex.com/Market/Index?MarketName=' + usr.marketNn, target="_blank")= usr.marketNn
-                td= usr.bvolume
-                td= usr.spread
-                td= usr.candle
-                td= usr.trend
+                td= usr.enterPrice
+                td= usr.matchPrice
+                td= moment(usr.lastTime).format(DATE_FORMAT)
+                //td= usr.candle
+                //td= usr.trend
                 //td= usr.full_nm
                 //if(usr.active == true)
                 //  td= "Active"

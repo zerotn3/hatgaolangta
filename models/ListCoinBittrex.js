@@ -12,6 +12,8 @@ const listCoinBittrexSchema = new mongoose.Schema({
   marketNn : String,
   enterPrice : Number,
   lastTime: Number,
+  matchPrice: Number,
+
   bbvalue: Number,
   bvolume : Number,
   spread: Number,
