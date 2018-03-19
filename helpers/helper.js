@@ -23,10 +23,10 @@ const _ = require('lodash');
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
 
-const token = '472833515:AAGXIRPigpyRKgO1NfLCPXBJ3R-5twUKBNw';
-//
-//
-const bot = new TelegramBot(token, {polling: true})
+// const token = '472833515:AAGXIRPigpyRKgO1NfLCPXBJ3R-5twUKBNw';
+// //
+// //
+// const bot = new TelegramBot(token, {polling: true})
 
 
 const mailer = nodeMailer.createTransport({
@@ -817,84 +817,84 @@ const startCheckListCoin = () => {
   }
 };
 
-async function closeSocket(scoin) {
+function closeSocket(scoin) {
   binance.websockets.terminate(`${scoin}@kline_15m`);
 }
 
-async function startSocket(scoin) {
-  setTimeout(function() {
-  binance.websockets.chart(scoin, "15m", (symbol, interval, chart) => {
-    let keys = Object.keys(chart);
+function startSocket(scoin) {
+  setTimeout(function () {
+    binance.websockets.chart(scoin, "15m", (symbol, interval, chart) => {
+      let keys = Object.keys(chart);
 
-    /**
-     * check nen xanh do
-     */
-    let love3st = R.takeLast(4, keys);
-    let redblueArr = [];
-    love3st.forEach(function (entry) {
-      let dt = moment(Number(entry)).toString();
-      //console.log(dt);
-      redblueArr.push(chart[entry]);
-    });
-    let candlests = checkCandle(redblueArr);
+      /**
+       * check nen xanh do
+       */
+      let love3st = R.takeLast(4, keys);
+      let redblueArr = [];
+      love3st.forEach(function (entry) {
+        redblueArr.push(chart[entry]);
+      });
 
-    /**
-     * Check RSI
-     */
-    let love50st = R.takeLast(50, keys);
-    let RsiArr = [];
-    love50st.forEach(function (entry) {
-      RsiArr.push(chart[entry]);
-    });
-    let listRSI = _.map(RsiArr, 'close');
-    let rsiVl = checkRSI(listRSI);
-    //console.log(rsiVl);
-
-    /**
-     * Lay data neu thoa man candle & RSI
-     */
-    if (candlests && (rsiVl < 70)) {
-
+      /**
+       * Check RSI
+       */
+      let love50st = R.takeLast(50, keys);
+      let RsiArr = [];
+      love50st.forEach(function (entry) {
+        RsiArr.push(chart[entry]);
+      });
+      let listRSI = _.map(RsiArr, 'close');
+      /**
+       * Cal BB26
+       */
       let lastCandle = R.takeLast(50, keys);
-
       let closePrice = [];
       lastCandle.forEach(function (entry) {
-        const d = moment(Number(entry)).toString();
-        //console.log(d);
         closePrice.push(Number(chart[entry].close));
       });
-      //last time
-      let tick = binance.last(chart);
-      const last = chart[tick].close;
-      const volume = chart[tick].volume;
-      if (volume > 10) {
-        let bb26 = getBB(6, 2, closePrice);
 
-        if (bb26 === last) {
-          const listcoin = new ListCoinBittrex({
-            marketNn: scoin,
-            enterPrice: last,
-            lastTime: tick
-          });
+      Promise.all([checkCandle(redblueArr), checkRSI(listRSI), getBB(6, 2, closePrice)]).then((values) => {
+        /**
+         * Lay data neu thoa man candle & RSI
+         */
+        if (values[0] && (values[1] < 70)) {
+          //last time
+          let tick = binance.last(chart);
+          const last = chart[tick].close;
+          const volume = chart[tick].volume;
+          if (volume > 10) {
 
-          listcoin.save(function (error) {
-            if (error) {
-              console.error(error);
+            if (values[2] === last) {
+              console.log(values[2] + last);
+              const listcoin = new ListCoinBittrex({
+                marketNn: scoin,
+                enterPrice: last,
+                lastTime: tick
+              });
+
+              listcoin.save(function (error) {
+                if (error) {
+                  console.error(error);
+                }
+              });
+              // bot.sendMessage('218238495', `Market Name: ${scoin}
+              //                     Giá tại BB26 = Last: ${bb26}`);
+              // bot.sendMessage('-277262874', `Market Name: ${scoin}
+              //                         Giá vào lệnh: ${bb26}`);
+              console.log(values[2] + last);
             }
-          });
-          bot.sendMessage('218238495', `Market Name: ${scoin}
-                                  Giá tại BB26 = Last: ${bb26}`);
-          // bot.sendMessage('-277262874', `Market Name: ${scoin}
-          //                         Giá vào lệnh: ${bb26}`);
-          console.log(bb26 + last);
+          }
+        } else {
+          //console.log(`${scoin} có 3 nên liên tiếp không đủ điều kiện !`);
+          //bot.sendMessage('218238495', `${scoin} 3 nến liên tiếp không đủ điều kiện.`);
+          closeSocket(scoin);
         }
-      }
-    } else {
-      //console.log(`${scoin} có 3 nên liên tiếp không đủ điều kiện !`);
-      //bot.sendMessage('218238495', `${scoin} 3 nến liên tiếp không đủ điều kiện.`);
-      closeSocket(scoin);
-    }
-  });
+      }, function () {
+        console.log('stuff failed')
+      });
+
+
+    });
   }, 500);
 }
 
