@@ -50,6 +50,7 @@ const seeder = require('./helpers/seeder');
 
 const listCoinController = require('./controllers/ListCoinController');
 
+
 /**
  * API keys and Passport configuration.
  */
@@ -303,19 +304,20 @@ app.use(errorHandler());
  * Start Express server.
  */
 app.listen(app.get('port'), () => {
+  helper.checkStepSize();
   helper.startCheckListCoin();
   helper.updatePriceFinished();
 
-  let countrun = 0;
-  let minutes = 15, the_interval = minutes * 60 * 1000;
-  setInterval(function () {
-    helper.startCheckListCoin();
-    helper.updatePriceFinished();
-    countrun = countrun + 1;
-    console.log(`==========Chạy được ${countrun} lần=============`)
-  }, the_interval);
-  console.log('%s App is running at http://localhost:%d in %s mode', chalk.green('✓'), app.get('port'), app.get('env'));
-  console.log('  Press CTRL-C to stop\n');
+  // let countrun = 0;
+  // let minutes = 15, the_interval = minutes * 60 * 1000;
+  // setInterval(function () {
+  //   helper.startCheckListCoin();
+  //   helper.updatePriceFinished();
+  //   countrun = countrun + 1;
+  //   console.log(`==========Chạy được ${countrun} lần=============`)
+  // }, the_interval);
+  // console.log('%s App is running at http://localhost:%d in %s mode', chalk.green('✓'), app.get('port'), app.get('env'));
+  // console.log('  Press CTRL-C to stop\n');
   // helper.user.fetchAllActiveUsersAsMap()
   //   .then((userMap) => {
   //     global.userMap = userMap;
