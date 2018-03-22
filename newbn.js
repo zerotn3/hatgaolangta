@@ -5,13 +5,31 @@ const R = require('ramda');
 const fs = require('fs');
 const moment = require('moment');
 
+//
+// binance.exchangeInfo(function(error, data) {
+//   let minimums = {};
+//   for ( let obj of data.symbols ) {
+//     let filters = {status: obj.status};
+//     for ( let filter of obj.filters ) {
+//       if ( filter.filterType == "LOT_SIZE" ) {
+//         filters.stepSize = filter.stepSize;
+//         filters.minQty = filter.minQty;
+//         filters.maxQty = filter.maxQty;
+//       }
+//     }
+//     filters.orderTypes = obj.orderTypes;
+//     filters.icebergAllowed = obj.icebergAllowed;
+//     minimums[obj.symbol] = filters;
+//   }
+//   console.log(minimums);
+// });
 
-binance.candlesticks("BNBBTC", "15m", (error, ticks, symbol) => {
-  console.log("candlesticks()", ticks);
-  ticks.forEach(item => {
-    console.log("candlesticks()", item);
+const buymarket = (coinNm, price) => {
+  let numberEth =  0.01;
+  let amount = price * numberEth;
+  let quantity = binance.roundStep(amount, stepSize);
+  binance.buy(coinNm, quantity, price, {type: 'LIMIT'}, (error, response) => {
+    console.log("Limit Buy response", response);
+    console.log("order id: " + response.orderId);
   });
-  let last_tick = ticks[ticks.length - 1];
-  let [time, open, high, low, close, volume, closeTime, assetVolume, trades, buyBaseVolume, buyAssetVolume, ignored] = last_tick;
-  console.log(symbol + " last close: " + close);
-}, {startTime:1514763900000, endTime: 1514764800000});
+}

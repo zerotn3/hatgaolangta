@@ -6,6 +6,7 @@ const User = require('../models/User');
 const Config = require('../models/Config');
 const WalletTransaction = require('../models/WalletTransaction');
 const ListCoinBittrex = require('../models/ListCoinBittrex');
+const RateInfoBnb = require('../models/RateInfoBnb');
 const RequestBtc = require('../models/RequestBtc');
 const TransferBtc = require('../models/TransferBtc');
 const constants = require('../config/constants.json');
@@ -22,6 +23,13 @@ const R = require('ramda');
 const _ = require('lodash');
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
+
+binance.options({
+  APIKEY: '<key>',
+  APISECRET: '<secret>',
+  useServerTime: true, // If you get timestamp errors, synchronize to server time at startup
+  test: true // If you want to use sandbox mode where orders are simulated
+});
 
 // const token = '472833515:AAGXIRPigpyRKgO1NfLCPXBJ3R-5twUKBNw';
 // //
@@ -811,6 +819,9 @@ const fetchAllActiveUsersAsMap = () => {
 
 
 const startCheckListCoin = () => {
+  listcoinBNB.listCBNB = _.filter(
+    listcoinBNB.listCBNB, u => u.toString().indexOf('ETH') > -1
+  );
   for (let XXX in listcoinBNB.listCBNB) {
     let scoin = listcoinBNB.listCBNB[XXX];
     startSocket(scoin);
@@ -863,8 +874,9 @@ function startSocket(scoin) {
           const last = chart[tick].close;
           const volume = chart[tick].volume;
           if (volume > 10) {
-
             if (values[2] === last) {
+              console.log(`Giá của ${scoin} tại thời điểm ${tick} là : ${last}`);
+              buymarket(scoin, last);
               console.log(values[2] + last);
               const listcoin = new ListCoinBittrex({
                 marketNn: scoin,
@@ -993,6 +1005,98 @@ async function getPerWL(coinNm, timeenterPrice, enterPrice) {
   })
 }
 
+function checkStepSize() {
+  deleteAllRateInfoBnb();
+  binance.exchangeInfo(function (error, data) {
+    for (let obj of data.symbols) {
+      let filters = {status: obj.status};
+      for (let filter of obj.filters) {
+        if (filter.filterType == "LOT_SIZE") {
+          filters.stepSize = filter.stepSize;
+          filters.minQty = filter.minQty;
+          filters.maxQty = filter.maxQty;
+          const infoRate = new RateInfoBnb({
+            marketNn: obj.symbol,
+            status: obj.status,
+            stepSize: filter.stepSize,
+            minQty: filter.minQty,
+            maxQty: filter.maxQty,
+          });
+
+          infoRate.save(function (error) {
+            if (error) {
+              console.error(error);
+            }
+          });
+
+        }
+      }
+    }
+    console.log(`save done`)
+  });
+}
+
+function deleteAllRateInfoBnb() {
+  RateInfoBnb.remove({}, function (err) {
+      if (err) {
+        console.log(err)
+      } else {
+        console.log(`deleted All record`)
+      }
+    }
+  );
+}
+
+
+const getStepSize = (scoin) => {
+  return new Promise((resolve, reject) => {
+    RateInfoBnb.findOne({
+      marketNn: scoin
+    }, (err, val) => {
+      if (!err) {
+        resolve(val);
+      } else {
+        reject(err);
+      }
+    });
+  });
+};
+
+const buymarket = (coinNm, price) => {
+  let numberEth = 0.01;
+  let amount = numberEth / price;
+  getStepSize(coinNm)
+    .then((val) => {
+      let stepS = val.stepSize;
+      let minQty = val.minQty;
+      let quantity = binance.roundStep(amount, stepS);
+      if (quantity < minQty) {
+        return;
+        console.log(`số lượng ${coinNm} không đủ minQty ${minQty} < qTy ${quantity}`);
+      }
+      console.log(coinNm + '   ' + quantity);
+      binance.buy(coinNm, quantity, price, {type: 'LIMIT'}, (error, response) => {
+        if (!response) {
+          console.log("Limit Buy response fail");
+        }
+        console.log("Đã mua với order id: " + response.orderId);
+      });
+    });
+}
+
+const sellmarket = (coinNm, amount, price) => {
+  binance.sell(coinNm, amount, price, {type: 'LIMIT'}, (error, response) => {
+    console.log("Limit Buy response", response);
+    console.log("order id: " + response.orderId);
+  });
+}
+
+function cancelBuy(coinNm) {
+  binance.cancelOrders(coinNm, (error, response, symbol) => {
+    console.log(symbol+" cancel response:", response);
+  });
+}
+
 
 const helpers = {
   user: {
@@ -1025,6 +1129,7 @@ const helpers = {
     notifyBannedAccount: notifyBannedAccount,
   },
   startCountDownSchedule: startCountDownSchedule,
+  checkStepSize: checkStepSize,
   startCheckListCoin: startCheckListCoin,
   updatePriceFinished: updatePriceFinished,
   transferBTCFromOverflowToWithdrawn: transferBTCFromOverflowToWithdrawn,
