@@ -10,6 +10,7 @@ const listCBNB = require('./listcoinbinance');
 const binance = require('node-binance-api');
 
 getListCoinBittrex();
+
 getListCoinBinance();
 let countrun = 0;
 let minutes = 10, the_interval = minutes * 60 * 1000;
@@ -56,17 +57,18 @@ function getListCoinBittrex() {
     for (let i in data.result) {
       let coinRes = data.result[i];
       let rsivl = getRSIVal(coinRes.MarketName);
-
-      Promise.all([rsivl])
-        .then((data) => {
-          if (data[0] <= 30) {
-            console.log(`[Bittrex] RSI của ${coinRes.MarketName} là : ${data}`);
-            bot.sendMessage('218238495', `[Bittrex] RSI của ${coinRes.MarketName} là : ${data}`);
-          }
-        })
-        .catch((err) => {
-          console.log(`IssueTool : ${err}`);
-        });
+      setTimeout(function () {
+        Promise.all([rsivl])
+          .then((data) => {
+            if (data[0] <= 30) {
+              console.log(`[Bittrex] RSI của ${coinRes.MarketName} là : ${data}`);
+              bot.sendMessage('218238495', `[Bittrex] RSI của ${coinRes.MarketName} là : ${data}`);
+            }
+          })
+          .catch((err) => {
+            console.log(`IssueTool : ${err}`);
+          });
+      }, 1000)
     }
   });
 }
@@ -110,20 +112,22 @@ function getListCoinBinance() {
 
 function getRSIValBinance(scoin) {
   return new Promise((resolve, reject) =>
-    binance.candlesticks(scoin, "30m", (error, ticks, symbol) => {
-      if (error) {
-        console.log(error);
-        reject(error);
-      }
-      let listclosePrice = _.map(ticks, 4);
-      let inputRSI = {
-        values: listclosePrice,
-        period: 14
-      };
-      let RSTvl = _.last(RSI.calculate(inputRSI));
+    setTimeout(function () {
+      binance.candlesticks(scoin, "30m", (error, ticks, symbol) => {
+        if (error) {
+          console.log(error);
+          reject(error);
+        }
+        let listclosePrice = _.map(ticks, 4);
+        let inputRSI = {
+          values: listclosePrice,
+          period: 14
+        };
+        let RSTvl = _.last(RSI.calculate(inputRSI));
 
-      resolve(RSTvl);
-    }))
+        resolve(RSTvl);
+      })
+    }, 1000))
 };
 
 
