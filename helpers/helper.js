@@ -876,7 +876,7 @@ function startSocket(scoin) {
           if (volume > 10) {
             if (values[2] === last) {
               console.log(`Giá của ${scoin} tại thời điểm ${tick} là : ${last}`);
-              buymarket(scoin, last);
+              //buymarket(scoin, last);
               console.log(values[2] + last);
               const listcoin = new ListCoinBittrex({
                 marketNn: scoin,
@@ -897,7 +897,7 @@ function startSocket(scoin) {
             }
           }
         } else {
-          //console.log(`${scoin} có 3 nên liên tiếp không đủ điều kiện !`);
+          console.log(`${scoin} có 3 nên liên tiếp không đủ điều kiện !`);
           //bot.sendMessage('218238495', `${scoin} 3 nến liên tiếp không đủ điều kiện.`);
           closeSocket(scoin);
         }
