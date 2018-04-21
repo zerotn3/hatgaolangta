@@ -47,6 +47,7 @@ const configController = require('./controllers/ConfigController');
 const walletController = require('./controllers/WalletController');
 const helper = require('./helpers/helper');
 const seeder = require('./helpers/seeder');
+const bitttrexSignal = require('./helpers/bitttrexSignal');
 
 const listCoinController = require('./controllers/ListCoinController');
 
@@ -304,37 +305,16 @@ app.use(errorHandler());
  * Start Express server.
  */
 app.listen(app.get('port'), () => {
-  helper.checkStepSize();
-  helper.startCheckListCoin();
-  helper.updatePriceFinished();
+  bitttrexSignal.getListCoinBittrex();
+  bitttrexSignal.funcCheckCoinEMA();
 
-  // let countrun = 0;
-  // let minutes = 15, the_interval = minutes * 60 * 1000;
-  // setInterval(function () {
-  //   helper.startCheckListCoin();
-  //   helper.updatePriceFinished();
-  //   countrun = countrun + 1;
-  //   console.log(`==========Chạy được ${countrun} lần=============`)
-  // }, the_interval);
-  // console.log('%s App is running at http://localhost:%d in %s mode', chalk.green('✓'), app.get('port'), app.get('env'));
-  // console.log('  Press CTRL-C to stop\n');
-  // helper.user.fetchAllActiveUsersAsMap()
-  //   .then((userMap) => {
-  //     global.userMap = userMap;
-  //     console.log(`Initialized UserMap!`);
-  //   })
-  //   .catch((err) => {
-  //     console.log(`Could not fetch active users (${err.message})`);
-  //   });
-
-  // helper.startCountDownSchedule(moment(new Date()).add(countEnding, "days").toDate());
-  // Config.findOne({name: constants.COUNT_ENDING})
-  //   .then((config) => {
-  //     if (config) {
-  //       const date = moment(config.value, constants.DATE_FORMAT).tz("Asia/Ho_Chi_Minh").toDate();
-  //       helper.startCountDownSchedule(date);
-  //     }
-  //   });
+  let countrun = 0;
+  let minutes = 10, the_interval = minutes * 60 * 1000;
+  setInterval(function () {
+    bitttrexSignal.funcCheckCoinEMA();
+    countrun = countrun + 1;
+    console.log("==========Chạy được   " + countrun + "   lần=============")
+  }, the_interval);
 });
 
 module.exports = app;

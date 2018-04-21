@@ -3119,6 +3119,10 @@ osenv@0:
     os-homedir "^1.0.0"
     os-tmpdir "^1.0.0"
 
+p-iteration@^1.1.5:
+  version "1.1.5"
+  resolved "https://registry.yarnpkg.com/p-iteration/-/p-iteration-1.1.5.tgz#c8dd8e61d5bc1a151c7c7ccc2e288c0fb826eb8b"
+
 p-limit@^1.1.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/p-limit/-/p-limit-1.2.0.tgz#0e92b6bedcb59f022c13d0f1949dc82d15909f1c"

@@ -13,20 +13,6 @@ const listCoinBittrexSchema = new mongoose.Schema({
   enterPrice : Number,
   lastTime: Number,
   matchPrice: Number,
-
-  bbvalue: Number,
-  bvolume : Number,
-  spread: Number,
-  candle: String,
-  trend: String,
-  ask: Number,
-  bid: Number,
-  highVl: Number,
-  lowVl: Number,
-  lastVl: Number,
-  openBuyOrder: Number,
-  openSellOrder: Number,
-  timeMarket: String,
 }, { timestamps: true });
 
 //listCoinBittrexSchema.plugin(relationship, { relationshipPathName: 'user' });
