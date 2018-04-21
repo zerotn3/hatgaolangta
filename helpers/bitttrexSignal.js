@@ -6,7 +6,26 @@ const BB = require('technicalindicators').BollingerBands;
 const EMA = require('technicalindicators').EMA
 const TelegramBot = require('node-telegram-bot-api');
 const ListCoinBittrex = require('../models/ListCoinBittrex');
+const ListCoinBittrexChecked = require('../models/ListCoinBittrexChecked');
 const moment = require('moment');
+const token = '472833515:AAGXIRPigpyRKgO1NfLCPXBJ3R-5twUKBNw';
+const bot = new TelegramBot(token, {polling: true});
+bot.onText(/\/echo (.+)/, (msg, match) => {
+  const chatId = msg.chat.id;
+  const resp = match[1]; // the captured "whatever"
+  console.log(chatId);
+  bot.sendMessage(chatId, resp);
+});
+
+bot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+
+  // send a message to the chat acknowledging receipt of their message
+  bot.sendMessage('218238495', "tổ lái");
+});
+
+const idchanneltelegram = "-1001235356068";
+
 
 async function getListCoinBittrex() {
   console.log(`Bắt đầu check list coin trên bittrex .....`);
@@ -48,7 +67,7 @@ async function getListCoinBittrex() {
       }
     )
     .catch((err) => {
-      console.log(`IssueTool : ${err}`);
+      console.log(`IssueTool : ${err.toString()}`);
     });
 
 
@@ -84,22 +103,33 @@ const funcCheckCoinEMA = () => {
           setTimeout(() => {
             Promise.all([funGetEMA(coinNm.marketNn)])
               .then((data) => {
-                let Sval = data[0];
-                let Lval = data[1];
-                let Sval1 = data[2];
-                let Lval1 = data[3];
-                let ClosePrice = data[4];
-                let ClosePrice1 = data[5];
-                //let timenow = new moment().format("HH:mm");
+                let Sval = data[0][0].ema5;
+                let Lval = data[0][1].ema10;
+                let Sval1 = data[0][2].ema51;
+                let Lval1 = data[0][3].ema101;
+                let ClosePrice = data[0][4].lastClosePrice;
+                let ClosePrice1 = data[0][5].lastClosePrice1;
+                let timenow = moment().subtract(1, 'days').format('YYYY-MM-DD h:mm:ss a');
                 //check up trend
-                if ((Sval > Lval) && (Sval1 < Lval1)) {
-                  console.log(`Mua kìa ba ơi : 
-                              Tên Coin : ${coinNm.marketNn}
-                              Giá Vào: ${ClosePrice}
-                              Thời gian: 
-                              `)
+                if ((Sval > Lval) && (Sval1 < Lval1) && (ClosePrice > ClosePrice1)) {
+
+
+                  let message = `
+                                🚀 #${coinNm.marketNn} 🚀
+                                ⚡ Giá : ${ClosePrice}
+                                🕕 Ngày:  ${timenow}
+                                🔗 https://bittrex.com/Market/Index?MarketName=${coinNm.marketNn}
+                                 `;
+
+                  Promise.all([saveCoinChecked(coinNm.marketNn, Number(ClosePrice)), sendMessageTelegramGroup(idchanneltelegram, message)])
+                    .then((data) => {
+
+                    })
+                    .catch((err) => {
+                      console.log(`IssueTool : ${err.toString()}`);
+                    });
                 }
-               // console.log(data);
+                // console.log(data);
               })
               .catch((err) => {
                 console.log(`IssueTool : ${err}`);
@@ -108,6 +138,45 @@ const funcCheckCoinEMA = () => {
         })
       }
     );
+}
+
+const saveCoinChecked = (marketName, priceEnter) => {
+  return new Promise((resolve, reject) => {
+    ListCoinBittrexChecked.findOne({marketNn: marketName, enterPrice: priceEnter}, function (err, marketNn) {
+      if (!err) {
+        if (!marketNn) {
+          let listCoinBittrexChecked = new ListCoinBittrexChecked();
+          listCoinBittrexChecked.marketNn = marketName;
+          listCoinBittrexChecked.enterPrice = priceEnter;
+          listCoinBittrexChecked.save(function (err) {
+            if (!err) {
+              resolve(`Save Done`);
+            }
+            else {
+              reject(`Save Fail`);
+            }
+          });
+        }
+      } else {
+        reject(err);
+        console.log(`Có lỗi hệ thống, liên hệ Admin`);
+      }
+    });
+  });
+}
+
+const sendMessageTelegramGroup = (id, message) => {
+  return new Promise((resolve, reject) => {
+    try {
+      setTimeout(function () {
+        bot.sendMessage(id, message)
+      }, 1000);
+      resolve(`Send Done`);
+    } catch (err) {
+      console.log(err);
+      reject(err);
+    }
+  });
 }
 
 const funGetEMA = async (marketNm) => {
@@ -120,30 +189,34 @@ const funGetEMA = async (marketNm) => {
         console.log(err);
         reject(err);
       }
-      let coinArr = data.result;
-      let listclosePrice = _.map(coinArr, 'C');
-      let lastClosePrice = _.last(listclosePrice);
-          coinArr.pop();
-      let listcloseLastPrice = _.map(coinArr, 'C');
-      let lastClosePrice1 = _.last(listcloseLastPrice);
+      try {
+        let coinArr = data.result;
+        let listclosePrice = _.map(coinArr, 'C');
+        let lastClosePrice = _.last(listclosePrice);
+        coinArr.pop();
+        let listcloseLastPrice = _.map(coinArr, 'C');
+        let lastClosePrice1 = _.last(listcloseLastPrice);
 
-      let emaarr = [];
-      //the last candle
-      let emaVal10 = _.last(EMA.calculate({period: 10, values: listclosePrice}));
-      let emaVal5 = _.last(EMA.calculate({period: 5, values: listclosePrice}));
+        let emaarr = [];
+        //the last candle
+        let emaVal10 = _.last(EMA.calculate({period: 10, values: listclosePrice}));
+        let emaVal5 = _.last(EMA.calculate({period: 5, values: listclosePrice}));
 
-      //the last candle - 1
-      let emaVal10_1 = _.last(EMA.calculate({period: 10, values: listcloseLastPrice}));
-      let emaVal5_1 = _.last(EMA.calculate({period: 5, values: listcloseLastPrice}));
+        //the last candle - 1
+        let emaVal10_1 = _.last(EMA.calculate({period: 10, values: listcloseLastPrice}));
+        let emaVal5_1 = _.last(EMA.calculate({period: 5, values: listcloseLastPrice}));
 
-      emaarr.push(emaVal5);
-      emaarr.push(emaVal10);
-      emaarr.push(emaVal5_1);
-      emaarr.push(emaVal10_1);
-      emaarr.push(lastClosePrice);
-      emaarr.push(lastClosePrice1);
+        emaarr.push({'ema5': emaVal5});
+        emaarr.push({'ema10': emaVal10});
+        emaarr.push({'ema51': emaVal5_1});
+        emaarr.push({'ema101': emaVal10_1});
+        emaarr.push({'lastClosePrice': lastClosePrice});
+        emaarr.push({'lastClosePrice1': lastClosePrice1});
 
-      resolve(emaarr);
+        resolve(emaarr);
+      } catch (e) {
+        console.log(`Lỗi hệ thống ${e.toString()}`);
+      }
     })
   })
 };
@@ -151,7 +224,8 @@ const funGetEMA = async (marketNm) => {
 const bittrexSignal = {
 
   getListCoinBittrex: getListCoinBittrex,
-  funcCheckCoinEMA: funcCheckCoinEMA
+  funcCheckCoinEMA: funcCheckCoinEMA,
+  sendMessageTelegramGroup: sendMessageTelegramGroup
 
 };
 
