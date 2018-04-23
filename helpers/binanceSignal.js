@@ -24,8 +24,10 @@ const getAllSymboyInBinance = () => {
             ListCoinBinance.findOne({marketNn: marketName}, function (err, marketNn) {
               if (!err) {
                 if (!marketNn) {
+                  //Thông báo có coin mới
                   let messCheckCoin = `Có coin mới lên sàn : ${marketName}`;
                   bottelegram.sendMessageTelegramGroup(messCheckCoin);
+                  // Save new coin
                   let lstCoinBinance = new ListCoinBinance();
                   lstCoinBinance.marketNn = marketName;
                   lstCoinBinance.save(function (err) {
@@ -135,19 +137,11 @@ const funcCheckCoinEMABN = () => {
                 let Lval1 = data[0][3].ema101;
                 let ClosePrice = data[0][4].lastClosePrice;
                 let ClosePrice1 = data[0][5].lastClosePrice1;
-                let timenow = moment().subtract(1, 'days').format('YYYY-MM-DD h:mm:ss a');
+
                 //check up trend
                 if ((Sval > Lval) && (Sval1 < Lval1) && (ClosePrice > ClosePrice1)) {
 
-
-                  let message = `
-                                🚀 #${coinNm.marketNn} 🚀
-                                ⚡ Giá : ${ClosePrice1}
-                                🕕 Ngày:  ${timenow}
-                                🔗 https://www.binance.com/tradeDetail.html?symbol=${coinNm.marketNn}
-                                 `;
-
-                  Promise.all([saveCoinCheckedBN(coinNm.marketNn, Number(ClosePrice1)), bottelegram.sendMessageTelegramGroup(message)])
+                  Promise.all([saveCoinCheckedBN(coinNm.marketNn, Number(ClosePrice1)),])
                     .then((data) => {
 
                     })
@@ -177,15 +171,24 @@ const saveCoinCheckedBN = (marketName, priceEnter) => {
     ListCoinBinanceChecked.findOne({marketNn: marketName, enterPrice: priceEnter}, function (err, marketNn) {
       if (!err) {
         if (!marketNn) {
+          let timeEnter = moment().subtract(1, 'days').format('YYYY-MM-DD h:mm:ss a');
+          let message = `
+🚀 #${marketName} 🚀
+⚡ Giá Vào: ${priceEnter}
+🕕 Ngày:  ${timeEnter}
+🔗 https://www.binance.com/tradeDetail.html?symbol=${marketName}
+ `;
+          bottelegram.sendMessageTelegramGroup(message)
+
           let listCoinBnBChecked = new ListCoinBinanceChecked();
           listCoinBnBChecked.marketNn = marketName;
           listCoinBnBChecked.enterPrice = priceEnter;
           listCoinBnBChecked.save(function (err) {
             if (!err) {
-              resolve(`Save Done`);
+              resolve(`Done`);
             }
             else {
-              reject(`Save Fail`);
+              reject(`Fail`);
             }
           });
         }

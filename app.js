@@ -326,6 +326,15 @@ app.listen(app.get('port'), () => {
    */
   binanceSignal.getAllSymboyInBinance();
   binanceSignal.funcCheckCoinEMABN();
+
+  let countrun = 0;
+  let minutes = 15, the_interval = minutes * 60 * 1000;
+  setInterval(function () {
+    binanceSignal.getAllSymboyInBinance();
+    binanceSignal.funcCheckCoinEMABN();
+    countrun = countrun + 1;
+    console.log("==========Chạy được   " + countrun + "   lần=============")
+  }, the_interval);
 });
 
 module.exports = app;

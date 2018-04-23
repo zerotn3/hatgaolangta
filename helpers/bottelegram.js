@@ -5,7 +5,8 @@
 const TelegramBot = require('node-telegram-bot-api');
 const token = '472833515:AAGXIRPigpyRKgO1NfLCPXBJ3R-5twUKBNw';
 const bot = new TelegramBot(token, {polling: true});
-const idchanneltelegram = "-1001235356068";
+//const idchanneltelegram = "-1001235356068"; //id group
+const idchanneltelegram = "218238495"; // id bot
 
 bot.onText(/\/echo (.+)/, (msg, match) => {
   const chatId = msg.chat.id;
@@ -16,7 +17,6 @@ bot.onText(/\/echo (.+)/, (msg, match) => {
 
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
-
   // send a message to the chat acknowledging receipt of their message
   bot.sendMessage(idchanneltelegram, "Biết vừa thôi, bị khử đấy !!!");
 });
