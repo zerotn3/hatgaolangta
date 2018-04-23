@@ -28,6 +28,7 @@ const User = require('./models/User');
 
 const upload = multer({dest: path.join(__dirname, 'uploads')});
 
+
 /**
  * Load environment variables from .env file, where API keys and passwords are configured.
  */
@@ -48,6 +49,7 @@ const walletController = require('./controllers/WalletController');
 const helper = require('./helpers/helper');
 const seeder = require('./helpers/seeder');
 const bitttrexSignal = require('./helpers/bitttrexSignal');
+const binanceSignal = require('./helpers/binanceSignal');
 
 const listCoinController = require('./controllers/ListCoinController');
 
@@ -305,16 +307,25 @@ app.use(errorHandler());
  * Start Express server.
  */
 app.listen(app.get('port'), () => {
-  bitttrexSignal.getListCoinBittrex();
-  bitttrexSignal.funcCheckCoinEMA();
+  /**
+   * Bittrex
+   */
+  // bitttrexSignal.getListCoinBittrex();
+  // bitttrexSignal.funcCheckCoinEMA();
+  //
+  // let countrun = 0;
+  // let minutes = 10, the_interval = minutes * 60 * 1000;
+  // setInterval(function () {
+  //   bitttrexSignal.funcCheckCoinEMA();
+  //   countrun = countrun + 1;
+  //   console.log("==========Chạy được   " + countrun + "   lần=============")
+  // }, the_interval);
 
-  let countrun = 0;
-  let minutes = 10, the_interval = minutes * 60 * 1000;
-  setInterval(function () {
-    bitttrexSignal.funcCheckCoinEMA();
-    countrun = countrun + 1;
-    console.log("==========Chạy được   " + countrun + "   lần=============")
-  }, the_interval);
+  /**
+   * Binance
+   */
+  binanceSignal.getAllSymboyInBinance();
+  binanceSignal.funcCheckCoinEMABN();
 });
 
 module.exports = app;
